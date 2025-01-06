@@ -723,7 +723,7 @@ def jump_attack(damage_taken):
     else:
         run_away = run_away.lower()  
 
-    if run_away == "run_away":
+    if run_away == "run away":
         blankline(1)
         print("You run out of the way.")
         if pause_mode == True:
