@@ -3,7 +3,6 @@ import time
 import os
 import msvcrt
 import math
-import ctypes
 
 ### Universal functions
 
@@ -53,42 +52,6 @@ def timed_input(prompt, timeout):
 
         if time.time() - start_time > timeout:
             return None
-        
-def get_console_size():
-
-    h = ctypes.windll.kernel32.GetStdHandle(-12)
-    csbi = ctypes.create_string_buffer(22)
-    res = ctypes.windll.kernel32.GetConsoleScreenBufferInfo(h, csbi)
-    if res:
-        import struct
-        (bufx, bufy, curx, cury, wattr,
-         left, top, right, bottom,
-         maxx, maxy) = struct.unpack("hhhhHhhhhhh", csbi.raw)
-        sizex = right - left + 1
-        sizey = bottom - top + 1
-        return sizex, sizey
-    else:
-        return 80, 25
-
-def get_cursor_position():
-
-    h = ctypes.windll.kernel32.GetStdHandle(-11)
-    csbi = ctypes.create_string_buffer(22)
-    res = ctypes.windll.kernel32.GetConsoleScreenBufferInfo(h, csbi)
-    if res:
-        import struct
-        (bufx, bufy, curx, cury, wattr,
-         left, top, right, bottom,
-         maxx, maxy) = struct.unpack("hhhhHhhhhhh", csbi.raw)
-        return curx, cury
-    else:
-        return 0, 0
-
-def clear_room_test():
-
-    sizex, sizey = get_console_size()
-    curx, cury = get_cursor_position()
-    return cury >= sizey - 20
 
 ### Difficulty selection
 
@@ -102,6 +65,9 @@ def select_difficulty():
     global counterattack_difficulty_multiplier
     global damage_difficulty_multiplier
     global impossible_damage_difficulty_multiplier
+    global console_attacks
+
+    console_attacks = 0
 
     blankline(1)
     wait(1)
@@ -149,16 +115,16 @@ def select_difficulty():
             difficulty_input = input("Please select a valid difficulty. ").lower()
     
     if difficulty == 1:
-        dodge_difficulty_multiplier = 2
+        dodge_difficulty_multiplier = 1.9
         counterattack_difficulty_multiplier = 1.5
-        damage_difficulty_multiplier = 0.5
+        damage_difficulty_multiplier = 0.7
         impossible_damage_difficulty_multiplier = 1
 
 
     elif difficulty == 2:
         dodge_difficulty_multiplier = 1.5
-        counterattack_difficulty_multiplier = 1.25
-        damage_difficulty_multiplier = 0.75
+        counterattack_difficulty_multiplier = 1.3
+        damage_difficulty_multiplier = 0.85
         impossible_damage_difficulty_multiplier = 1
     
     elif difficulty == 3:
@@ -170,7 +136,7 @@ def select_difficulty():
     elif difficulty == 4:
         dodge_difficulty_multiplier = 0.8
         counterattack_difficulty_multiplier = 0.85
-        damage_difficulty_multiplier = 1.5
+        damage_difficulty_multiplier = 1.4
         impossible_damage_difficulty_multiplier = 1
 
     else:
@@ -182,19 +148,19 @@ def select_difficulty():
 ### Basic Stats
 
 global knight_attacks
-knight_attacks = ["hit", "bash", "stab", "thrust"]
+knight_attacks = ["hit", "stab", "thrust"]
 global knight_attack_damage
-knight_attack_damage = [1, 2, 4, 5]
+knight_attack_damage = [2, 4, 5]
 
 global samurai_attacks
-samurai_attacks = ["cut", "slash", "slice", "riposte"]
+samurai_attacks = ["cut", "slash", "riposte"]
 global samurai_attack_damage
-samurai_attack_damage = [2, 4, 5, 7]
+samurai_attack_damage = [3, 5, 7]
 
 global mage_attacks
-mage_attacks = ["curse", "fireball", "ice shard", "lightning bolt"]
+mage_attacks = ["curse", "fireball", "lightning bolt"]
 global mage_attack_damage
-mage_attack_damage = [2, 4, 6, 8]
+mage_attack_damage = [3, 6, 10]
 
 def set_player_stats():
 
@@ -222,7 +188,7 @@ def set_player_buffs():
     global defense_buff
 
     if player_class == "knight":
-        defense_buff = 0.4
+        defense_buff = 0.25
 
     elif player_class == "samurai":
         defense_buff = -0.25
@@ -268,7 +234,6 @@ def set_player_buffs():
 
 def print_knight_description():
 
-    blankline(2)
     print("""You have chosen the Knight class.
                   
     The Knight class is a balanced class with a sword and shield.
@@ -284,7 +249,6 @@ def print_knight_description():
 
 def print_samurai_description():
 
-    blankline(2)
     print("""You have chosen the Samurai class.
                   
     The Samurai class is a nimble class with two katanas.
@@ -302,12 +266,11 @@ def print_samurai_description():
 
 def print_mage_description():
 
-    blankline(2)
     print("""You have chosen the Mage class.
                   
     The Mage class is a complex class with a magic staff.
         It deals high damage and takes standard damage from all attacks.
-        The Mage class has a chance to not take damage even when hit,
+        The Mage class has a chance to nullify damage when hit,
         however its spells are more difficult to cast.""")
     wait(1)
     blankline(1)
@@ -331,16 +294,19 @@ def select_player_class():
 
         if "k" in player_class_input or player_class_input == "1":
             player_class = "knight"
+            blankline(2)
             print_knight_description()
             break
 
         elif "s" in player_class_input or player_class_input == "2":
             player_class = "samurai"
+            blankline(2)
             print_samurai_description()
             break
 
         elif "mag" in player_class_input or player_class_input == "3":
             player_class = "mage"
+            blankline(2)
             print_mage_description()
             break
 
@@ -353,37 +319,38 @@ def select_player_class():
 
     clear_input_buffer()
     confirm_class = input("Confirm this choice, or choose another class. ").lower()
+    
     while not any(confirm_phrase in confirm_class for confirm_phrase in confirm_phrases):
 
         if "k" in confirm_class or confirm_class == "1":
             player_class = "knight"
+            blankline(2)
             print_knight_description()
             clear_input_buffer()
             confirm_class = input("Confirm this choice, or choose another class. ").lower()
-            blankline(1)
             continue
 
         elif "s" in confirm_class or confirm_class == "2":
             player_class = "samurai"
+            blankline(2)
             print_samurai_description()
             clear_input_buffer()
             confirm_class = input("Confirm this choice, or choose another class. ").lower()
-            blankline(1)
             continue
 
         elif "mag" in confirm_class or confirm_class == "3":
             player_class = "mage"
+            blankline(2)
             print_mage_description()
             clear_input_buffer()
             confirm_class = input("Confirm this choice, or choose another class. ").lower()
-            blankline(1)
             continue
 
         else:
             blankline(1)
             confirm_class = input("Please confirm your class, or choose a different one. ").lower()
-    
-    blankline(1)
+    clear_console()
+    wait(1)
 
 ### Fight initialization
 
@@ -391,6 +358,25 @@ def initialize_fight():
 
     start_phrases = ["ready", "go", "start", "begin", "fight", "ye", "sure", "ok", "alright", "fine", "yup", "guess", "confirm"]
     wait_phrases = ["wait", "hold", "stop", "pause", "no", "na", "don", "won"]
+
+    blankline(1)
+
+    if player_class == "knight":
+        print_knight_description()
+
+    elif player_class == "samurai":
+        print_samurai_description()
+
+    else:
+        print_mage_description()
+
+    print("""DUCK, JUMP, DODGE, SIDESTEP, or RUN AWAY to avoid taking damage.
+    Pay attention to enemy movements to learn the correct evasive techniques.
+    Retaliate with an above counterattack after a successfull evasion.
+    After more powerful attacks, retaliate with a more powerful counterattack.""")
+    wait(1)
+    blankline (2)
+
 
     clear_input_buffer()
     start = input("Are you ready to fight? ").lower()
@@ -491,7 +477,10 @@ def counterattack(time_window):
             monster_health = 0
 
     else:
-        print("""
+        if counterattack is not None:
+            print("    You missed the opportunity to counterattack.")
+        else:
+            print("""
     You missed the opportunity to counterattack.""")
 
 # Invincibility chance
@@ -519,17 +508,17 @@ def swing_from_left(damage_taken):
         wait(random.uniform(1.5, 3))
     else:
         wait(random.triangular(2, 6, 4.5))
-    jump = timed_input("He swings! ", 1.5*dodge_difficulty_multiplier*(1+dodge_buff))
+    dodge = timed_input("He swings! ", 1.5*dodge_difficulty_multiplier*(1+dodge_buff))
 
-    if jump is None:
+    if dodge is None:
         blankline(1)
 
     else:
-        jump = jump.lower()  
+        dodge = dodge.lower()  
 
-    if jump == "jump":
+    if dodge == "dodge":
         blankline(1)
-        print("You jump over the monster's club.")
+        print("You dodge the monster's club.")
         if pause_mode == True:
             wait(1)
         counterattack(1.5)
@@ -539,24 +528,24 @@ def swing_from_left(damage_taken):
         invincibility_chance()
         
         if invincibility == True:
-            print(f"""You couldn't jump in time, but the monster's club passed straight through you!
+            print(f"""You couldn't dodge in time, but the monster's club passed straight through you!
     You have {player_health} health remaining.""")
 
         else:
 
             if player_health >=round(damage_taken*damage_difficulty_multiplier*(1-defense_buff)):
                 player_health = player_health-round(damage_taken*damage_difficulty_multiplier*(1-defense_buff))
-                print(f"""You couldn't jump in time and get hit by the monster's club. You get hit for {round(damage_taken*damage_difficulty_multiplier*(1-defense_buff))} damage!
+                print(f"""You couldn't dodge in time and get hit by the monster's club. You get hit for {round(damage_taken*damage_difficulty_multiplier*(1-defense_buff))} damage!
     You have {player_health} health remaining.""")
 
             else:
-                print(f"""You couldn't jump in time and get hit by the monster's club. You get hit for {player_health} damage!
+                print(f"""You couldn't dodge in time and get hit by the monster's club. You get hit for {player_health} damage!
     You have 0 health remaining.""")
                 player_health = 0
 
     blankline(1)
 
-    del jump
+    del dodge
 
 # Swing from above
 
@@ -593,9 +582,9 @@ def swing_from_above(damage_taken):
 
         else:
 
-            if player_health >=math.floor(damage_taken*damage_difficulty_multiplier*(1-defense_buff)):
-                player_health = player_health-math.floor(damage_taken*damage_difficulty_multiplier*(1-defense_buff))
-                print(f"""You couldn't sidestep in time and get hit by the monster's club. You get hit for {math.floor(damage_taken*damage_difficulty_multiplier*(1-defense_buff))} damage!
+            if player_health >=round(damage_taken*damage_difficulty_multiplier*(1-defense_buff)):
+                player_health = player_health-round(damage_taken*damage_difficulty_multiplier*(1-defense_buff))
+                print(f"""You couldn't sidestep in time and get hit by the monster's club. You get hit for {round(damage_taken*damage_difficulty_multiplier*(1-defense_buff))} damage!
     You have {player_health} health remaining.""")
 
             else:
@@ -642,9 +631,9 @@ def lunge(damage_taken):
 
         else:
 
-            if player_health >=math.ceil(damage_taken*damage_difficulty_multiplier*(1-defense_buff)):
-                player_health = player_health-math.ceil(damage_taken*damage_difficulty_multiplier*(1-defense_buff))
-                print(f"""You couldn't duck in time and get hit by the monster. You get hit for {math.ceil(damage_taken*damage_difficulty_multiplier*(1-defense_buff))} damage!
+            if player_health >=round(damage_taken*damage_difficulty_multiplier*(1-defense_buff)):
+                player_health = player_health-round(damage_taken*damage_difficulty_multiplier*(1-defense_buff))
+                print(f"""You couldn't duck in time and get hit by the monster. You get hit for {round(damage_taken*damage_difficulty_multiplier*(1-defense_buff))} damage!
     You have {player_health} health remaining.""")
 
             else:
@@ -666,7 +655,7 @@ def headbutt(damage_taken):
         wait(random.uniform(1.5, 3))
     else:
         wait(random.triangular(2, 5, 3.5))
-    jump = timed_input("He lunges at you! ", 1.45*dodge_difficulty_multiplier*(1+dodge_buff))
+    jump = timed_input("He charges! ", 1.45*dodge_difficulty_multiplier*(1+dodge_buff))
 
     if jump is None:
         blankline(1)
@@ -691,9 +680,9 @@ def headbutt(damage_taken):
 
         else:
 
-            if player_health >=math.ceil(damage_taken*damage_difficulty_multiplier*(1-defense_buff)):
-                player_health = player_health-math.ceil(damage_taken*damage_difficulty_multiplier*(1-defense_buff))
-                print(f"""You couldn't jump in time and get headbutted. You get hit for {math.ceil(damage_taken*damage_difficulty_multiplier*(1-defense_buff))} damage!
+            if player_health >=round(damage_taken*damage_difficulty_multiplier*(1-defense_buff)):
+                player_health = player_health-round(damage_taken*damage_difficulty_multiplier*(1-defense_buff))
+                print(f"""You couldn't jump in time and get headbutted. You get hit for {round(damage_taken*damage_difficulty_multiplier*(1-defense_buff))} damage!
     You have {player_health} health remaining.""")
 
             else:
@@ -740,9 +729,9 @@ def jump_attack(damage_taken):
 
         else:
 
-            if player_health >=math.floor(damage_taken*damage_difficulty_multiplier*(1-defense_buff)):
-                player_health = player_health-math.floor(damage_taken*damage_difficulty_multiplier*(1-defense_buff))
-                print(f"""You couldn't run away in time and the monster lands on you. You get hit for {math.floor(damage_taken*damage_difficulty_multiplier*(1-defense_buff))} damage!
+            if player_health >=round(damage_taken*damage_difficulty_multiplier*(1-defense_buff)):
+                player_health = player_health-round(damage_taken*damage_difficulty_multiplier*(1-defense_buff))
+                print(f"""You couldn't run away in time and the monster lands on you. You get hit for {round(damage_taken*damage_difficulty_multiplier*(1-defense_buff))} damage!
     You have {player_health} health remaining.""")
 
             else:
@@ -810,7 +799,7 @@ while True:
     set_player_buffs()
     while True:
         monster_attacks = ["swing_from_left", "swing_from_above", "lunge", "headbutt", "jump_attack"]
-        monster_attack_chance = [3, 2, 4, 3, 2]
+        monster_attack_chance = [0.2,0.19,0.22,0.21,0.18]
         selected_attack = random.choices(monster_attacks, weights=monster_attack_chance, k=1)[0]
         if selected_attack == "swing_from_left":
             swing_from_left(6)
@@ -830,11 +819,13 @@ while True:
         else:
             continue
 
+        global console_attacks
+        console_attacks = console_attacks+1
 
-
-        if clear_room_test():
+        if console_attacks == 4:
             wait(2*dodge_difficulty_multiplier)
             clear_console()
+            console_attacks = 0
 
         wait(2*dodge_difficulty_multiplier)
 
