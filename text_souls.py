@@ -176,7 +176,7 @@ def select_difficulty():
     else:
         dodge_difficulty_multiplier = 0.6
         counterattack_difficulty_multiplier = 0.7
-        damage_difficulty_multiplier = 0
+        damage_difficulty_multiplier = 2
         impossible_damage_difficulty_multiplier = 0.7
 
 ### Basic Stats
